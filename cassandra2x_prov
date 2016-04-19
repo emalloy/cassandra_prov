@@ -4,7 +4,7 @@ set -o errexit
 export PATH=/home/cassandra/current/bin:$PATH
 
 # assumes cassandra exploded to /home/cassandra
-pushd ~/home/cassandra/current/bin/
+pushd /home/cassandra/current/bin/
 dirname `pwd -P`| cut -d\/ -f4 | cut -d\- -f3 \
   > /tmp/cassandra-version.txt
 export CASSANDRA_VERSION=$(cat /tmp/cassandra-version.txt)
@@ -37,9 +37,9 @@ local CASSRANDOM=$(head -8 /dev/urandom | md5sum | cut -d\- -f1)
 local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
 local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
 echo \
-    "CREATE USER ${ADMIN_USER} WITH PASSWORD ${ADMIN_PASS} SUPERUSER;" \
+    "CREATE USER ${ADMIN_USER} WITH PASSWORD \'${ADMIN_PASS}\' SUPERUSER;" \
     | cqlsh -u ${CASS_DEFAULT_UN} -p ${CASS_DEFAULT_PW}
-echo "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD ${CASSRANDOM} NOSUPERUSER;" \
+echo "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD \'${CASSRANDOM}\' NOSUPERUSER;" \
     | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
 }
 
