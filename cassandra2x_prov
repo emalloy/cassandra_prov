@@ -18,7 +18,7 @@ if ! hash cassandra >/dev/null 2>&1; then
 fi
 
 # Enable Password Authenticator
-for y in /etc/cassandra /home/cassandra/conf ;
+for y in /etc/cassandra /home/cassandra/current/conf ;
 do
 sed -i \
 "s/^authenticator\:\ AllowAllAuthenticator/\
