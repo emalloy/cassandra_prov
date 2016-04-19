@@ -18,10 +18,13 @@ if ! hash cassandra >/dev/null 2>&1; then
 fi
 
 # Enable Password Authenticator
+for y in /etc/cassandra /home/cassandra/conf ;
+do
 sed -i \
 "s/^authenticator\:\ AllowAllAuthenticator/\
 authenticator\:\ PasswordAuthenticator/1" \
-/home/cassandra/current/conf/cassandra.yaml
+$y/cassandra.yaml;
+done
 
 # Start Cassandra service
 cassandra &
