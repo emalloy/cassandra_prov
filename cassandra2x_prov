@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -x
+set -o errexit
+export PATH=/home/cassandra/current/bin:$PATH
+
+# assumes cassandra exploded to /home/cassandra
+pushd ~/home/cassandra/current/bin/
+dirname `pwd -P`| cut -d\/ -f4 | cut -d\- -f3 \
+  > /tmp/cassandra-version.txt
+export CASSANDRA_VERSION=$(cat /tmp/cassandra-version.txt)
+echo "Provisioning Cassandra v"${CASSANDRA_VERSION}
+popd
+
+
+if ! hash cassandra >/dev/null 2>&1; then
+  printf "Can't find cassandra, exiting!\n"
+  exit 1
+fi
+
+# Enable Password Authenticator
+sed -i \
+"s/^authenticator\:\ AllowAllAuthenticator/\
+authenticator\:\ PasswordAuthenticator/1" \
+/home/cassandra/current/conf/cassandra.yaml
+
+# Start Cassandra service
+cassandra &
+while ! nc -vz localhost 9160 ; do sleep 3; done
+
+cassandra2x ()
+{
+# Create cassandra superuser via cqslsh
+local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
+local CASS_DEFAULT_UN="cassandra"
+local CASS_DEFAULT_PW="cassandra"
+local CASSRANDOM=$(head -8 /dev/urandom | md5sum | cut -d\- -f1)
+local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
+local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
+echo \
+    "CREATE USER ${ADMIN_USER} WITH PASSWORD ${ADMIN_PASS} SUPERUSER;" \
+    | cqlsh -u ${CASS_DEFAULT_UN} -p ${CASS_DEFAULT_PW}
+echo "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD ${CASSRANDOM} NOSUPERUSER;" \
+    | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
+}
+
+
+if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
+  cassandra2x ${C_ADMIN_USER} ${C_ADMIN_PASS}
+  else
+      echo "Cassandra 2.x is the only supported version at this time Exiting ...."
+      exit 1
+fi
+
