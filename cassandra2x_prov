@@ -27,7 +27,7 @@ $y/cassandra.yaml;
 done
 
 # Start Cassandra service
-cassandra -p /home/cassandra/current/cassandra.pid
+nohup cassandra -p /home/cassandra/current/cassandra.pid
 while ! nc -vz localhost 9160 ; do sleep 3; done
 
 cassandra2x ()
@@ -51,8 +51,11 @@ echo -e \
     | cqlsh --debug -u cassandra -p cassandra
 echo -e "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD '${CASSRANDOM}' NOSUPERUSER;" \
     | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
+# the java graceful-kill
 kill `cat /home/cassandra/current/cassandra.pid`
+sleep 6
 }
+
 
 
 if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
@@ -61,5 +64,6 @@ if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
       echo "Cassandra 2.x is the only supported version at this time Exiting ...."
       exit 1
 fi
+
 
 cassandra -f
