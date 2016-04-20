@@ -34,15 +34,22 @@ cassandra2x ()
 {
 # Create cassandra superuser via cqslsh
 local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
-local CASS_DEFAULT_UN="cassandra"
-local CASS_DEFAULT_PW="cassandra"
+local CQLSH_HOST=${DB_HOST}
+local CQLSH_PORT=9160
+local CASS_DEFAULT_UN=cassandra
+local CASS_DEFAULT_PW=cassandra
 local CASSRANDOM=$(head -8 /dev/urandom | md5sum | cut -d\- -f1)
 local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
 local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
-echo \
-    "CREATE USER ${ADMIN_USER} WITH PASSWORD \'${ADMIN_PASS}\' SUPERUSER;" \
-    | cqlsh -u ${CASS_DEFAULT_UN} -p ${CASS_DEFAULT_PW}
-echo "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD \'${CASSRANDOM}\' NOSUPERUSER;" \
+
+# cassandra comes up on 9160 but doesn't initialize system users \
+    # immediately - do while loop until rt=0, then proceed
+while ! cqlsh -u cassandra -p cassandra -e "SHOW VERSION";  do sleep 5; done
+# proceed
+echo -e \
+    "CREATE USER ${ADMIN_USER} WITH PASSWORD '${ADMIN_PASS}' SUPERUSER;" \
+    | cqlsh --debug -u cassandra -p cassandra
+echo -e "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD '${CASSRANDOM}' NOSUPERUSER;" \
     | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
 }
 
