@@ -3,6 +3,11 @@ set -x
 set -o errexit
 export PATH=/home/cassandra/current/bin:$PATH
 
+if ! hash cassandra >/dev/null 2>&1; then
+  printf "Can't find cassandra, exiting!\n"
+  exit 1
+fi
+
 # assumes cassandra exploded to /home/cassandra
 pushd /home/cassandra/current/bin/
 dirname `pwd -P`| cut -d\/ -f4 | cut -d\- -f3 \
@@ -10,12 +15,6 @@ dirname `pwd -P`| cut -d\/ -f4 | cut -d\- -f3 \
 export CASSANDRA_VERSION=$(cat /tmp/cassandra-version.txt)
 echo "Provisioning Cassandra v"${CASSANDRA_VERSION}
 popd
-
-
-if ! hash cassandra >/dev/null 2>&1; then
-  printf "Can't find cassandra, exiting!\n"
-  exit 1
-fi
 
 # Enable Password Authenticator
 for y in /etc/cassandra /home/cassandra/current/conf ;
