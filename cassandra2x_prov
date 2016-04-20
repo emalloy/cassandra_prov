@@ -27,7 +27,7 @@ $y/cassandra.yaml;
 done
 
 # Start Cassandra service
-cassandra &
+cassandra -p /home/cassandra/current/cassandra.pid
 while ! nc -vz localhost 9160 ; do sleep 3; done
 
 cassandra2x ()
@@ -51,6 +51,7 @@ echo -e \
     | cqlsh --debug -u cassandra -p cassandra
 echo -e "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD '${CASSRANDOM}' NOSUPERUSER;" \
     | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
+kill `cat /home/cassandra/current/cassandra.pid`
 }
 
 
@@ -61,3 +62,4 @@ if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
       exit 1
 fi
 
+cassandra -f
