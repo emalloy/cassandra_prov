@@ -25,6 +25,15 @@ authenticator\:\ PasswordAuthenticator/1" \
 $y/cassandra.yaml;
 done
 
+# Enable <thrift:0>
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/^rpc_address\:\ localhost/\
+rpc_address\:\ 0.0.0.0/1" \
+$y/cassandra.yaml;
+done
+
 # Start Cassandra service
 nohup cassandra -p /home/cassandra/current/cassandra.pid
 while ! nc -vz localhost 9160 ; do sleep 3; done
