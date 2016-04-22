@@ -51,7 +51,7 @@ local CASS_DEFAULT_PW=cassandra
 local CASSRANDOM=$(cat /tmp/pass)
 local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
 local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
-export SCRIPT_URL=${C_SCRIPT_URL:-"https://gist.githubusercontent.com/lv0/6636852da4a22565e71ea80dcdbbdf77/raw/9a64bb264c2fd1ade0cf0a6fab1e5dc67553bfc2/test.cql"}
+export SCRIPT_URL=${C_CQLSH_SCRIPT:-"https://gist.githubusercontent.com/lv0/6636852da4a22565e71ea80dcdbbdf77/raw/9a64bb264c2fd1ade0cf0a6fab1e5dc67553bfc2/test.cql"}
 
 
 # cassandra comes up on 9160 but doesn't initialize system users \
