@@ -41,12 +41,14 @@ while ! nc -vz localhost 9160 ; do sleep 3; done
 cassandra2x ()
 {
 # Create cassandra superuser via cqslsh
+head -8 /dev/urandom | md5sum | cut -d\- -f1 > /tmp/pass
+
 local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
 local CQLSH_HOST=${DB_HOST}
 local CQLSH_PORT=9160
 local CASS_DEFAULT_UN=cassandra
 local CASS_DEFAULT_PW=cassandra
-local CASSRANDOM=$(head -8 /dev/urandom | md5sum | cut -d\- -f1)
+local CASSRANDOM=$(cat /tmp/pass)
 local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
 local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
 
