@@ -90,6 +90,7 @@ cqlsh -u ${ADMIN_USER} -p {$ADMIN_PASS} -f /tmp/input.cql
 
 if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
   cassandra2x ${C_ADMIN_USER} ${C_ADMIN_PASS}
+  cassandra2x_populate
   else
       echo "Cassandra 2.x is the only supported version at this time Exiting ...."
       exit 1
