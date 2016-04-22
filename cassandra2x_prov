@@ -51,6 +51,8 @@ local CASS_DEFAULT_PW=cassandra
 local CASSRANDOM=$(cat /tmp/pass)
 local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
 local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
+export SCRIPT_URL=${C_SCRIPT_URL:-"https://gist.githubusercontent.com/lv0/6636852da4a22565e71ea80dcdbbdf77/raw/9a64bb264c2fd1ade0cf0a6fab1e5dc67553bfc2/test.cql"}
+
 
 # cassandra comes up on 9160 but doesn't initialize system users \
     # immediately - do while loop until rt=0, then proceed
@@ -61,36 +63,17 @@ echo -e \
     | cqlsh --debug -u cassandra -p cassandra
 echo -e "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD '${CASSRANDOM}' NOSUPERUSER;" \
     | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
+
+curl -s ${SCRIPT_URL} -o /tmp/input.cql
+
+cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS} -f /tmp/input.cql
 # the java graceful-kill
 kill `cat /home/cassandra/current/cassandra.pid`
 sleep 6
 }
 
-cassandra2x_populate ()
-{
-local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
-local CQLSH_HOST=${DB_HOST}
-local CQLSH_PORT=9160
-local CASS_DEFAULT_UN=cassandra
-local CASS_DEFAULT_PW=cassandra
-local CASSRANDOM=$(cat /tmp/pass)
-local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
-local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
-export CQLSH_HOST=${C_CQLSH_HOST:-127.0.0.1}
-export CQLSH_PORT=${C_CQLSH_PORT:-9160}
-export SCRIPT_URL=${C_SCRIPT_URL:-"https://gist.githubusercontent.com/lv0/6636852da4a22565e71ea80dcdbbdf77/raw/9a64bb264c2fd1ade0cf0a6fab1e5dc67553bfc2/test.cql"}
-
-while ! cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS} -e "SHOW VERSION";  do sleep 5; done
-
-curl -s ${SCRIPT_URL} -o /tmp/input.cql
-
-cqlsh -u ${ADMIN_USER} -p {$ADMIN_PASS} -f /tmp/input.cql
-
-}
-
 if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
   cassandra2x ${C_ADMIN_USER} ${C_ADMIN_PASS}
-  cassandra2x_populate
   else
       echo "Cassandra 2.x is the only supported version at this time Exiting ...."
       exit 1
