@@ -46,12 +46,29 @@ done
 for y in /etc/cassandra /home/cassandra/current/conf ;
 do
 sed -i \
-"s/127.0.0.1/\"${_MYIP}\"/g" \
+"s/127.0.0.1/${_MYIP}/g" \
 $y/cassandra.yaml;
 done
 
-# Start Cassandra service
-while ! nc -vz localhost 9160 ; do sleep 3; echo "Cassandra is not running, retry"; done
+
+# fixup startup scripts for cassandra
+# @TODO -workaround until I can refactor the cassandra ansible-role
+
+cp -vf /home/cassandra/current/tools/bin/cassandra.in.sh \
+/etc/cassandra/cassandra.in.sh
+
+sed -i "s/CASSANDRA_HOME=`dirname \$0`\/..\/..\/
+/CASSANDRA_HOME=\/home\/cassandra\/current/g" \
+/etc/cassandra/cassandra.in.sh
+
+cp -vf /home/cassandra/current/conf/cassandra-env.sh \
+/etc/cassandra/cassandra-env.sh
+
+# Start Cassandra service + thrift listener
+/usr/bin/service cassandra start
+nodetool enablethrift
+while ! nc -vz localhost 9160 ; do sleep 3; done
+
 
 cassandra2x ()
 {
