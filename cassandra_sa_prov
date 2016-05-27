@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# this is primary used for provisioning a cassandra CONTAINER
+# this is primary used for provisioning a cassandra VM
+# the value of the _MYIP variable will not be accurate from within a container
+
 set -x
 set -o errexit
 export PATH=/home/cassandra/current/bin:$PATH
@@ -16,6 +18,11 @@ dirname `pwd -P`| cut -d\/ -f4 | cut -d\- -f3 \
 export CASSANDRA_VERSION=$(cat /tmp/cassandra-version.txt)
 echo "Provisioning Cassandra v"${CASSANDRA_VERSION}
 popd
+
+# get my ip
+export _MYIP=$(ip addr show dev eth0|
+grep inet|head -1 | awk ' { print $2 }'|
+cut -d/ -f1)
 
 # Enable Password Authenticator
 for y in /etc/cassandra /home/cassandra/current/conf ;
@@ -35,9 +42,40 @@ rpc_address\:\ 0.0.0.0/1" \
 $y/cassandra.yaml;
 done
 
-# Start Cassandra service
-nohup cassandra -p /home/cassandra/current/cassandra.pid
+# Enable proper seed address
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/127.0.0.1/${_MYIP}/g" \
+$y/cassandra.yaml;
+done
+
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/localhost/${_MYIP}/g" \
+$y/cassandra.yaml;
+done
+
+# fixup startup scripts for cassandra
+# @TODO -workaround until I can refactor the cassandra ansible-role
+
+cp -vf /home/cassandra/current/tools/bin/cassandra.in.sh \
+/etc/cassandra/cassandra.in.sh
+
+sed -i \
+'s/CASSANDRA_HOME=`dirname \$0`\/..\/..\//CASSANDRA_HOME=\/home\/cassandra\/current/g' \
+/etc/cassandra/cassandra.in.sh
+
+cp -vf /home/cassandra/current/conf/cassandra-env.sh \
+/etc/cassandra/cassandra-env.sh
+
+# Start Cassandra service + thrift listener
+/usr/bin/service cassandra start
+while ! nc -vz localhost 9042 ; do sleep 3; done
+nodetool enablethrift
 while ! nc -vz localhost 9160 ; do sleep 3; done
+
 
 cassandra2x ()
 {
@@ -45,7 +83,7 @@ cassandra2x ()
 head -8 /dev/urandom | md5sum | cut -d\- -f1 > /tmp/pass
 
 local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
-local CQLSH_HOST=${DB_HOST}
+export CQLSH_HOST=${_MYIP}
 local CQLSH_PORT=9160
 local CASS_DEFAULT_UN=cassandra
 local CASS_DEFAULT_PW=cassandra
@@ -68,9 +106,7 @@ echo -e "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD '${CASSRANDOM}' NOSUPERUSER
 curl -s ${SCRIPT_URL} -o /tmp/input.cql
 
 cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS} -f /tmp/input.cql
-# the java graceful-kill
-kill `cat /home/cassandra/current/cassandra.pid`
-sleep 6
+
 }
 
 if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
@@ -80,5 +116,3 @@ if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
       exit 1
 fi
 
-
-cassandra -f
