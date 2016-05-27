@@ -63,8 +63,8 @@ done
 cp -vf /home/cassandra/current/tools/bin/cassandra.in.sh \
 /etc/cassandra/cassandra.in.sh
 
-sed -i 's/CASSANDRA_HOME=`dirname \$0`\/..\/..\/
-/CASSANDRA_HOME=\/home\/cassandra\/current/g' \
+sed -i \
+'s/CASSANDRA_HOME=`dirname \$0`\/..\/..\//CASSANDRA_HOME=\/home\/cassandra\/current/g' \
 /etc/cassandra/cassandra.in.sh
 
 cp -vf /home/cassandra/current/conf/cassandra-env.sh \
@@ -72,6 +72,7 @@ cp -vf /home/cassandra/current/conf/cassandra-env.sh \
 
 # Start Cassandra service + thrift listener
 /usr/bin/service cassandra start
+while ! nc -vz localhost 9042 ; do sleep 3; done
 nodetool enablethrift
 while ! nc -vz localhost 9160 ; do sleep 3; done
 
