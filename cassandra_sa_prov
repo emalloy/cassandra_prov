@@ -59,7 +59,7 @@ cassandra2x ()
 head -8 /dev/urandom | md5sum | cut -d\- -f1 > /tmp/pass
 
 local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
-local CQLSH_HOST=${_MYIP}
+export CQLSH_HOST=${_MYIP}
 local CQLSH_PORT=9160
 local CASS_DEFAULT_UN=cassandra
 local CASS_DEFAULT_PW=cassandra
