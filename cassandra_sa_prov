@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# this is primary used for provisioning a cassandra VM
+# the value of the _MYIP variable will not be accurate from within a container
+
+set -x
+set -o errexit
+export PATH=/home/cassandra/current/bin:$PATH
+
+if ! hash cassandra >/dev/null 2>&1; then
+  printf "Can't find cassandra, exiting!\n"
+  exit 1
+fi
+
+# assumes cassandra exploded to /home/cassandra
+pushd /home/cassandra/current/bin/
+dirname `pwd -P`| cut -d\/ -f4 | cut -d\- -f3 \
+  > /tmp/cassandra-version.txt
+export CASSANDRA_VERSION=$(cat /tmp/cassandra-version.txt)
+echo "Provisioning Cassandra v"${CASSANDRA_VERSION}
+popd
+
+# get my ip
+export _MYIP=$(ip addr show dev eth0|
+grep inet|head -1 | awk ' { print $2 }'|
+cut -d/ -f1)
+
+# Enable Password Authenticator
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/^authenticator\:\ AllowAllAuthenticator/\
+authenticator\:\ PasswordAuthenticator/1" \
+$y/cassandra.yaml;
+done
+
+# Enable <thrift:0>
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/^rpc_address\:\ localhost/\
+rpc_address\:\ 0.0.0.0/1" \
+$y/cassandra.yaml;
+done
+
+# Enable proper seed address
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/127.0.0.1/\"${_MYIP}\"/g" \
+$y/cassandra.yaml;
+done
+
+# Start Cassandra service
+while ! nc -vz localhost 9160 ; do sleep 3; echo "Cassandra is not running, retry"; done
+
+cassandra2x ()
+{
+# Create cassandra superuser via cqslsh
+head -8 /dev/urandom | md5sum | cut -d\- -f1 > /tmp/pass
+
+local DB_HOST=${CASSANDRA_DB_HOST:-127.0.0.1}
+local CQLSH_HOST=${_MYIP}
+local CQLSH_PORT=9160
+local CASS_DEFAULT_UN=cassandra
+local CASS_DEFAULT_PW=cassandra
+local CASSRANDOM=$(cat /tmp/pass)
+local ADMIN_USER=${C_ADMIN_USER:-cassandraAdmin}
+local ADMIN_PASS=${C_ADMIN_PASS:-cassandraPassword}
+export SCRIPT_URL=${C_CQLSH_SCRIPT:-"https://gist.githubusercontent.com/lv0/6636852da4a22565e71ea80dcdbbdf77/raw/9a64bb264c2fd1ade0cf0a6fab1e5dc67553bfc2/test.cql"}
+
+
+# cassandra comes up on 9160 but doesn't initialize system users \
+    # immediately - do while loop until rt=0, then proceed
+while ! cqlsh -u cassandra -p cassandra -e "SHOW VERSION";  do sleep 5; done
+# proceed
+echo -e \
+    "CREATE USER ${ADMIN_USER} WITH PASSWORD '${ADMIN_PASS}' SUPERUSER;" \
+    | cqlsh --debug -u cassandra -p cassandra
+echo -e "ALTER USER ${CASS_DEFAULT_UN} WITH PASSWORD '${CASSRANDOM}' NOSUPERUSER;" \
+    | cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS}
+
+curl -s ${SCRIPT_URL} -o /tmp/input.cql
+
+cqlsh -u ${ADMIN_USER} -p ${ADMIN_PASS} -f /tmp/input.cql
+
+}
+
+if [[ ${CASSANDRA_VERSION} =~ ^2 ]]; then
+  cassandra2x ${C_ADMIN_USER} ${C_ADMIN_PASS}
+  else
+      echo "Cassandra 2.x is the only supported version at this time Exiting ...."
+      exit 1
+fi
+
