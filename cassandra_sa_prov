@@ -50,6 +50,12 @@ sed -i \
 $y/cassandra.yaml;
 done
 
+for y in /etc/cassandra /home/cassandra/current/conf ;
+do
+sed -i \
+"s/localhost/${_MYIP}/g" \
+$y/cassandra.yaml;
+done
 
 # fixup startup scripts for cassandra
 # @TODO -workaround until I can refactor the cassandra ansible-role
@@ -57,8 +63,8 @@ done
 cp -vf /home/cassandra/current/tools/bin/cassandra.in.sh \
 /etc/cassandra/cassandra.in.sh
 
-sed -i "s/CASSANDRA_HOME=`dirname \$0`\/..\/..\/
-/CASSANDRA_HOME=\/home\/cassandra\/current/g" \
+sed -i 's/CASSANDRA_HOME=`dirname \$0`\/..\/..\/
+/CASSANDRA_HOME=\/home\/cassandra\/current/g' \
 /etc/cassandra/cassandra.in.sh
 
 cp -vf /home/cassandra/current/conf/cassandra-env.sh \
